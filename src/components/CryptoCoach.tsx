@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Message, Video as VideoType } from "../types";
 import { supabase } from "../lib/supabase";
+import { getChatResponse } from "../api/chat/gemini";
 
 interface VideoFormProps {
   onClose: () => void;
@@ -27,7 +28,7 @@ function VideoForm({ onClose, onSubmit, initialVideo }: VideoFormProps) {
       url: "",
       description: "",
       category: "formation",
-      date: new Date(),
+      date: new Date().toISOString().split('T')[0],
     }
   );
 
@@ -146,13 +147,7 @@ function VideoForm({ onClose, onSubmit, initialVideo }: VideoFormProps) {
 
 export function CryptoCoach() {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content:
-        "Bonjour! Je suis votre assistant crypto. Comment puis-je vous aider aujourd'hui?",
-      sender: "bot",
-      timestamp: new Date(),
-    },
+    { id: 1, sender: "bot", text: "Hello! How can I assist you today?" },
   ]);
   const [newMessage, setNewMessage] = useState("");
   const [videos, setVideos] = useState<VideoType[]>([]);
@@ -185,31 +180,35 @@ export function CryptoCoach() {
       fetchVideos();
     }, []);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        content: newMessage,
-        sender: "user",
-        timestamp: new Date(),
-      };
+    const formatResponse = (response) => {
+      return response
+        .replace(/(?:\r\n|\r|\n)/g, "<br>")
+        .trim();
+    };
 
-      setMessages([...messages, userMessage]);
-
-      setTimeout(() => {
-        const botMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content:
-            "Je suis en cours de développement. Pour le moment, je ne peux que confirmer la réception de vos messages.",
-          sender: "bot",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, botMessage]);
-      }, 1000);
-
-      setNewMessage("");
-    }
-  };
+    const handleSendMessage = async () => {
+      if (newMessage.trim()) {
+        const userMessage = { id: Date.now(), sender: "user", text: newMessage };
+        setMessages((prevMessages) => [...prevMessages, userMessage]);
+        setNewMessage("");
+  
+        try {
+          const botResponse = await getChatResponse(newMessage);
+          const formattedResponse = formatResponse(botResponse);
+  
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { id: Date.now(), sender: "bot", text: formattedResponse },
+          ]);
+        } catch (error) {
+          console.error("Error fetching bot response:", error);
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { id: Date.now(), sender: "bot", text: "Sorry, something went wrong!" },
+          ]);
+        }
+      }
+    };
 
   const handleAddVideo = async (newVideo: VideoType) => {
     const { data: user, error: userError } = await supabase.auth.getUser();
@@ -230,6 +229,7 @@ export function CryptoCoach() {
       console.error("Error saving video:", error);
     } else {
       console.log("Video saved:", data);
+      setVideos([...videos, newVideoData]);
     }
   };
 
@@ -288,10 +288,10 @@ export function CryptoCoach() {
                       : "bg-gray-100 text-gray-900"
                   }`}
                 >
-                  <p>{message.content}</p>
-                  <p className="text-xs mt-1 opacity-70">
+                  <p>{message.text}</p>
+                  {/* <p className="text-xs mt-1 opacity-70">
                     {message.timestamp.toLocaleTimeString()}
-                  </p>
+                  </p> */}
                 </div>
               </div>
             ))}

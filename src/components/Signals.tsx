@@ -222,22 +222,14 @@ export function Signals() {
   const [signals, setSignals] = useState<CryptoSignal[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSignal, setEditingSignal] = useState<CryptoSignal | null>(null);
+  const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
     const fetchSignals = async () => {
-      const { data: user, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !user?.user) {
-        console.error("Error fetching user:", userError);
-        return;
-      }
-
-      const userId = user.user.id;
-
       const { data, error } = await supabase
         .from("signals")
         .select("*")
-        .eq("user_id", userId);
+        // .eq("user_id", userId);
 
       if (error) {
         console.error("Error fetching signals:", error);
@@ -246,7 +238,32 @@ export function Signals() {
       }
     };
 
+    const fetchAdmin = async () => {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !userData?.user) {
+    console.error("Error fetching current user:", userError);
+    return;
+  }
+
+  const userId = userData.user.id;
+
+      const { data, error } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .single();
+    
+      if (error) {
+        console.error("Error fetching admin:", error);
+      } else {
+        console.log("Fetched Admin Data:", data);
+        setAdmin(data);
+      }
+    };
+
     fetchSignals();
+    fetchAdmin();
   }, []);
 
   const handleAddSignal = async (newSignal: CryptoSignal) => {
@@ -270,6 +287,7 @@ export function Signals() {
       console.error("Error saving signal:", error);
     } else {
       console.log("Signal saved:", data);
+      setSignals([...signals, newSignalData])
     }
   };
 
@@ -339,13 +357,15 @@ export function Signals() {
               <Signal className="w-6 h-6 text-indigo-600 mr-2" />
               <h2 className="text-xl font-semibold">Signaux de Trading</h2>
             </div>
-            <button
+            {admin?.role === 'admin' && (
+              <button
               onClick={() => setShowAddForm(true)}
               className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nouveau Signal
             </button>
+            )}
           </div>
         </div>
 
@@ -377,7 +397,8 @@ export function Signals() {
                       {signal.type === "long" ? "Long" : "Short"}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  {admin?.role === 'admin' && (
+                    <div className="flex items-center space-x-2">
                     {signal.status === "active" && (
                       <>
                         <button
@@ -411,6 +432,7 @@ export function Signals() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 mb-4">

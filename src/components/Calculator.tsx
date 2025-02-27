@@ -57,7 +57,7 @@ export function Calculator() {
   const profitPercentage = (profit / currentSimulation.investment) * 100;
 
   const saveSimulation = async () => {
-    if (!currentSimulation.id || !currentSimulation.coin || !currentSimulation.entryPrice || !currentSimulation.investment || !currentSimulation.entryFees || !currentSimulation.exitFees || !currentSimulation.networkFees || !currentSimulation.exitPrice || !currentSimulation.notes) {
+    if (!currentSimulation.coin || !currentSimulation.entryPrice || !currentSimulation.investment || !currentSimulation.entryFees || !currentSimulation.exitFees || !currentSimulation.networkFees || !currentSimulation.exitPrice || !currentSimulation.notes) {
       alert("Please fill all required fields");
       return;
     }
@@ -83,8 +83,21 @@ export function Calculator() {
       console.error("Error saving simulation:", error);
     } else {
       console.log("Simulation saved:", data);
-      setSimulations({});
-
+      setCurrentSimulation({
+        id: '',
+        coin: '',
+        entryPrice: 0,
+        investment: 0,
+        entryFees: 0.1,
+        exitFees: 0.1,
+        networkFees: 0,
+        exitPrice: 0,
+        entryDate: new Date().toISOString().split('T')[0],
+        exitDate: new Date().toISOString().split('T')[0],
+        entryTime: '00:00',
+        exitTime: '00:00',
+        notes: ''
+      });
     }
   };
 

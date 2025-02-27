@@ -73,6 +73,7 @@ export function IdeaBoard() {
       } else {
         console.log("Idea saved:", data);
         setNewIdea("");
+        setIdeas([...ideas, newIdeaData]);
       }
     }else{
       alert("Veuillez saisir un contenu pour votre idée.");

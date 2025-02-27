@@ -5,6 +5,7 @@ import { AuthRequired } from './components/auth/AuthRequired';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 import { MainLayout } from './components/MainLayout';
+import Community from './components/Community';
 
 function App() {
   return (
@@ -13,6 +14,12 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
+          <Route path="/community"
+          element={
+            <AuthRequired>
+              <Community />
+            </AuthRequired>
+          } />
           <Route path="/" element={
             <AuthRequired>
               <MainLayout />
