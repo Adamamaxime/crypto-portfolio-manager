@@ -1,55 +1,101 @@
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  MessageSquare,
-  Video,
-  BookOpen,
-  Send,
-  Plus,
-  X,
-  Edit2,
-  Trash2,
-} from "lucide-react";
-import type { Message, Video as VideoType } from "../types";
+import { motion } from "framer-motion";
+import { MessageSquare, Send } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { LoadingSpinner } from "./common/LoadingSpinner";
+
+type Message = {
+  id: string;
+  content: string;
+  sender: string;
+  created_at: string;
+};
 
 const Community = () => {
-  const [messages, setMessages] = useState<Message[]>([
-      {
-        id: "1",
-        content:
-          "Bonjour! Je suis votre assistant crypto. Comment puis-je vous aider aujourd'hui?",
-        sender: "bot",
-        timestamp: new Date(),
-      },
-    ]);
-    const [newMessage, setNewMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(false);
 
-    const handleSendMessage = () => {
-        if (newMessage.trim()) {
-          const userMessage: Message = {
-            id: Date.now().toString(),
-            content: newMessage,
-            sender: "user",
-            timestamp: new Date(),
-          };
-    
-          setMessages([...messages, userMessage]);
-    
-          setTimeout(() => {
-            const botMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              content:
-                "Je suis en cours de développement. Pour le moment, je ne peux que confirmer la réception de vos messages.",
-              sender: "bot",
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, botMessage]);
-          }, 1000);
-    
-          setNewMessage("");
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user:", error);
+        } else {
+          setUser(data);
         }
-      };
+        setUserId(user.id);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const fetchMessages = async () => {
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching messages:", error);
+      setLoading(false)
+    } else {
+      setMessages(data || []);
+      setLoading(false)
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (newMessage.trim() && userId) {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert([{ content: newMessage, sender: userId }])
+        .select();
+
+      if (error) {
+        console.error("Error sending message:", error);
+      } else {
+        setMessages((prevMessages) => [...prevMessages, ...(data || [])]);
+        setNewMessage("");
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+
+    const subscription = supabase
+      .channel("messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            payload.new as Message,
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
   return (
     <div>
@@ -57,32 +103,37 @@ const Community = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-lg overflow-hidden h-[600px] flex flex-col"
+          className="m-4 bg-white rounded-xl shadow-lg overflow-hidden h-auto flex flex-col"
         >
           <div className="p-4 bg-indigo-600 text-white flex items-center">
             <MessageSquare className="w-5 h-5 mr-2" />
-            <h2 className="text-lg font-semibold">Assistant Crypto</h2>
+            <h2 className="text-lg font-semibold">Chat Communauté</h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
+                  message.sender === userId ? "justify-end" : "justify-start"
                 }`}
               >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.sender === "user"
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-900"
-                  }`}
-                >
-                  <p>{message.content}</p>
-                  <p className="text-xs mt-1 opacity-70">
-                    {message.timestamp.toLocaleTimeString()}
+                <div className="max-w-[80%] ">
+                  <p className="font-semibold text-sm">
+                    {user?.name || "Unknown"}
                   </p>
+                  <div
+                    className={`rounded-lg p-3 ${
+                      message.sender === userId
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 text-gray-900"
+                    }`}
+                  >
+                    <p>{message.content}</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -109,8 +160,13 @@ const Community = () => {
           </div>
         </motion.div>
       </div>
-    </div>
-  )
-}
 
-export default Community
+      
+      {loading && (
+        <LoadingSpinner />
+      )}
+    </div>
+  );
+};
+
+export default Community;

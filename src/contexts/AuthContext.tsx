@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (auth.user) {
         navigate('/');
       } else {
-        navigate('/login');
+        // navigate('/login');
       }
     }
   }, [auth.user, auth.loading, navigate]);

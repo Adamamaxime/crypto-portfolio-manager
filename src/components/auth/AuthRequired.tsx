@@ -4,16 +4,17 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 
 interface AuthRequiredProps {
   children: React.ReactNode;
+  exceptions?: string[];
 }
 
-export function AuthRequired({ children }: AuthRequiredProps) {
+export function AuthRequired({ children, exceptions = [] }: AuthRequiredProps) {
   const { user, loading } = useAuthContext();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (!user) {
+  if (!user && !exceptions.includes(location.pathname)) {
     return <Navigate to="/login" replace />;
   }
 
