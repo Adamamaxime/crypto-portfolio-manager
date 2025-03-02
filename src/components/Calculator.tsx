@@ -1,67 +1,74 @@
-import React, { useEffect, useState } from 'react';
-import { Calculator as CalculatorIcon, DollarSign, Percent, Save, History } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { Simulation } from '../types';
-import { supabase } from '../lib/supabase';
+import React, { useEffect, useState } from "react";
+import {
+  Calculator as CalculatorIcon,
+  DollarSign,
+  Percent,
+  Save,
+  History,
+  Trash,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Simulation } from "../types";
+import { supabase } from "../lib/supabase";
 
 export function Calculator() {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [currentSimulation, setCurrentSimulation] = useState<Simulation>({
-    id: '',
-    coin: '',
+    id: "",
+    coin: "",
     entryPrice: 0,
     investment: 0,
     entryFees: 0.1,
     exitFees: 0.1,
     networkFees: 0,
     exitPrice: 0,
-    entryDate: new Date().toISOString().split('T')[0],
-    exitDate: new Date().toISOString().split('T')[0],
-    entryTime: '00:00',
-    exitTime: '00:00',
-    notes: ''
+    entryDate: new Date().toISOString().split("T")[0],
+    exitDate: new Date().toISOString().split("T")[0],
+    entryTime: "00:00",
+    exitTime: "00:00",
+    notes: "",
   });
-  
-    useEffect(() => {
-      const fetchSimulations = async () => {
-        const { data: user, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user?.user) {
-          console.error("Error fetching user:", userError);
-          return;
-        }
-  
-        const userId = user.user.id;
-  
-        const { data, error } = await supabase
-          .from("simulations")
-          .select("*")
-          .eq("user_id", userId);
-  
-        if (error) {
-          console.error("Error fetching simulations:", error);
-        } else {
-          setSimulations(data || []);
-        }
-      };
-  
-      fetchSimulations();
-    }, []);
+
+  useEffect(() => {
+    const fetchSimulations = async () => {
+      const { data: user, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user?.user) {
+        console.error("Error fetching user:", userError);
+        return;
+      }
+
+      const userId = user.user.id;
+
+      const { data, error } = await supabase
+        .from("simulations")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error fetching simulations:", error);
+      } else {
+        setSimulations(data || []);
+      }
+    };
+
+    fetchSimulations();
+  }, []);
 
   const quantity = currentSimulation.investment / currentSimulation.entryPrice;
-  const totalEntryFees = (currentSimulation.investment * currentSimulation.entryFees) / 100 + currentSimulation.networkFees;
+  const totalEntryFees =
+    (currentSimulation.investment * currentSimulation.entryFees) / 100 +
+    currentSimulation.networkFees;
   const exitValue = quantity * currentSimulation.exitPrice;
-  const totalExitFees = (exitValue * currentSimulation.exitFees) / 100 + currentSimulation.networkFees;
-  const profit = exitValue - currentSimulation.investment - totalEntryFees - totalExitFees;
+  const totalExitFees =
+    (exitValue * currentSimulation.exitFees) / 100 +
+    currentSimulation.networkFees;
+  const profit =
+    exitValue - currentSimulation.investment - totalEntryFees - totalExitFees;
   const profitPercentage = (profit / currentSimulation.investment) * 100;
 
   const saveSimulation = async () => {
-    if (!currentSimulation.coin || !currentSimulation.entryPrice || !currentSimulation.investment || !currentSimulation.entryFees || !currentSimulation.exitFees || !currentSimulation.networkFees || !currentSimulation.exitPrice || !currentSimulation.notes) {
-      alert("Please fill all required fields");
-      return;
-    }
-
     const { data: user, error: userError } = await supabase.auth.getUser();
 
     if (userError || !user?.user) {
@@ -74,30 +81,40 @@ export function Calculator() {
       id: Date.now().toString(),
       user_id: user.user.id,
     };
-  
+
     const { data, error } = await supabase
       .from("simulations")
       .insert([newSimulation]);
-  
+
     if (error) {
       console.error("Error saving simulation:", error);
     } else {
       console.log("Simulation saved:", data);
       setCurrentSimulation({
-        id: '',
-        coin: '',
+        id: "",
+        coin: "",
         entryPrice: 0,
         investment: 0,
         entryFees: 0.1,
         exitFees: 0.1,
         networkFees: 0,
         exitPrice: 0,
-        entryDate: new Date().toISOString().split('T')[0],
-        exitDate: new Date().toISOString().split('T')[0],
-        entryTime: '00:00',
-        exitTime: '00:00',
-        notes: ''
+        entryDate: new Date().toISOString().split("T")[0],
+        exitDate: new Date().toISOString().split("T")[0],
+        entryTime: "00:00",
+        exitTime: "00:00",
+        notes: "",
       });
+    }
+  };
+
+  const deleteSimulation = async (id) => {
+    const { error } = await supabase.from("simulations").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting simulation:", error.message);
+    } else {
+      console.log("Simulation deleted successfully");
+      setSimulations((prev) => prev.filter((sim) => sim.id !== id));
     }
   };
 
@@ -148,7 +165,9 @@ export function Calculator() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <h3 className="text-lg font-semibold mb-4">Simulations enregistrées</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Simulations enregistrées
+            </h3>
             {simulations.map((sim) => (
               <motion.div
                 key={sim.id}
@@ -159,15 +178,37 @@ export function Calculator() {
                   <div>
                     <h4 className="font-medium">{sim.coin}</h4>
                     <p className="text-sm text-gray-600">
-                      Investissement: ${sim.investment} | Prix d'entrée: ${sim.entryPrice}
+                      Investissement: ${sim.investment} | Prix d'entrée: $
+                      {sim.entryPrice}
                     </p>
                     <p className="text-xs text-gray-500">
                       Entrée: {formatDateTime(sim.entryDate, sim.entryTime)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${(sim.exitPrice * (sim.investment / sim.entryPrice)) - sim.investment > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${((sim.exitPrice * (sim.investment / sim.entryPrice)) - sim.investment).toFixed(2)}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSimulation(sim.id);
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash size={18} />
+                    </button>
+                    <p
+                      className={`font-semibold ${
+                        sim.exitPrice * (sim.investment / sim.entryPrice) -
+                          sim.investment >
+                        0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      $
+                      {(
+                        sim.exitPrice * (sim.investment / sim.entryPrice) -
+                        sim.investment
+                      ).toFixed(2)}
                     </p>
                     <p className="text-xs text-gray-500">
                       Sortie: {formatDateTime(sim.exitDate, sim.exitTime)}
@@ -187,16 +228,25 @@ export function Calculator() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nom de la crypto</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Nom de la crypto
+                </label>
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={currentSimulation.coin}
-                  onChange={(e) => setCurrentSimulation({ ...currentSimulation, coin: e.target.value })}
+                  onChange={(e) =>
+                    setCurrentSimulation({
+                      ...currentSimulation,
+                      coin: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Montant investi</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Montant investi
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <DollarSign className="h-4 w-4 text-gray-400" />
@@ -205,12 +255,19 @@ export function Calculator() {
                     type="number"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.investment}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, investment: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        investment: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Prix d'entrée</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Prix d'entrée
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <DollarSign className="h-4 w-4 text-gray-400" />
@@ -219,12 +276,19 @@ export function Calculator() {
                     type="number"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.entryPrice}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, entryPrice: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        entryPrice: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Prix de sortie</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Prix de sortie
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <DollarSign className="h-4 w-4 text-gray-400" />
@@ -233,47 +297,80 @@ export function Calculator() {
                     type="number"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.exitPrice}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, exitPrice: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        exitPrice: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Date d'achat</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Date d'achat
+                  </label>
                   <input
                     type="date"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.entryDate}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, entryDate: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        entryDate: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Heure d'achat</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Heure d'achat
+                  </label>
                   <input
                     type="time"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.entryTime}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, entryTime: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        entryTime: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Date de vente</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Date de vente
+                  </label>
                   <input
                     type="date"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.exitDate}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, exitDate: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        exitDate: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Heure de vente</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Heure de vente
+                  </label>
                   <input
                     type="time"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.exitTime}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, exitTime: e.target.value })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        exitTime: e.target.value,
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -281,7 +378,9 @@ export function Calculator() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Frais d'achat (%)</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Frais d'achat (%)
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <Percent className="h-4 w-4 text-gray-400" />
@@ -291,12 +390,19 @@ export function Calculator() {
                     step="0.01"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.entryFees}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, entryFees: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        entryFees: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Frais de vente (%)</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Frais de vente (%)
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <Percent className="h-4 w-4 text-gray-400" />
@@ -306,12 +412,19 @@ export function Calculator() {
                     step="0.01"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.exitFees}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, exitFees: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        exitFees: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Frais réseau</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Frais réseau
+                </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
                     <DollarSign className="h-4 w-4 text-gray-400" />
@@ -321,19 +434,31 @@ export function Calculator() {
                     step="0.01"
                     className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={currentSimulation.networkFees}
-                    onChange={(e) => setCurrentSimulation({ ...currentSimulation, networkFees: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setCurrentSimulation({
+                        ...currentSimulation,
+                        networkFees: Number(e.target.value),
+                      })
+                    }
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Notes
+              </label>
               <textarea
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 rows={3}
                 value={currentSimulation.notes}
-                onChange={(e) => setCurrentSimulation({ ...currentSimulation, notes: e.target.value })}
+                onChange={(e) =>
+                  setCurrentSimulation({
+                    ...currentSimulation,
+                    notes: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -345,17 +470,27 @@ export function Calculator() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Frais totaux</p>
-                  <p className="text-lg font-semibold">${(totalEntryFees + totalExitFees).toFixed(2)}</p>
+                  <p className="text-lg font-semibold">
+                    ${(totalEntryFees + totalExitFees).toFixed(2)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Profit/Perte</p>
-                  <p className={`text-lg font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p
+                    className={`text-lg font-semibold ${
+                      profit >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
                     ${profit.toFixed(2)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">ROI</p>
-                  <p className={`text-lg font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p
+                    className={`text-lg font-semibold ${
+                      profit >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
                     {profitPercentage.toFixed(2)}%
                   </p>
                 </div>

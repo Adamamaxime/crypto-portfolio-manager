@@ -1,24 +1,61 @@
+an# Node modules
+node_modules/
+
 # Logs
-logs
+logs/
 *.log
+*.log.*
+
+# Build directories
+/dist/
+/build/
+
+# Temporary files
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+package-lock.json
+yarn.lock
+
+# NPM or Yarn log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# TypeScript
+*.tsbuildinfo
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Coverage reports
+coverage/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Parcel-bundler cache
+.cache/
+
+# Vite build files
+.vite/
+
+# Rollup build files
+rollup.*
+
+# MacOS .DS_Store files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

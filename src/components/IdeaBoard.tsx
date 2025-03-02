@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, Reorder } from "framer-motion";
-import { Lightbulb, Plus } from "lucide-react";
+import { Lightbulb, Plus, Trash } from "lucide-react";
 import type { IdeaNote } from "../types";
 import { supabase } from "../lib/supabase";
 
@@ -75,8 +75,18 @@ export function IdeaBoard() {
         setNewIdea("");
         setIdeas([...ideas, newIdeaData]);
       }
-    }else{
+    } else {
       alert("Veuillez saisir un contenu pour votre idée.");
+    }
+  };
+
+  const deleteIdeas = async (id) => {
+    const { error } = await supabase.from("ideas").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting simulation:", error.message);
+    } else {
+      console.log("Simulation deleted successfully");
+      setIdeas((prev) => prev.filter((sim) => sim.id !== id));
     }
   };
 
@@ -117,9 +127,18 @@ export function IdeaBoard() {
             key={idea.id}
             whileHover={{ scale: 1.05, rotate: 0 }}
             initial={{ rotate: Math.random() * 6 - 3 }}
-            className={`${idea.color} p-4 rounded-lg shadow-md transform transition-transform cursor-pointer hover:shadow-lg`}
+            className={`${idea.color} p-4 rounded-lg shadow-md transform transition-transform cursor-pointer hover:shadow-lg flex justify-between`}
           >
             <p className="text-gray-800 font-medium">{idea.content}</p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteIdeas(idea.id);
+              }}
+              className="text-red-500 hover:text-red-700"
+            >
+              <Trash size={18} />
+            </button>
           </motion.div>
         ))}
       </div>

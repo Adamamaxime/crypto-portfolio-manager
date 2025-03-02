@@ -28,7 +28,7 @@ function VideoForm({ onClose, onSubmit, initialVideo }: VideoFormProps) {
       url: "",
       description: "",
       category: "formation",
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split("T")[0],
     }
   );
 
@@ -147,68 +147,78 @@ function VideoForm({ onClose, onSubmit, initialVideo }: VideoFormProps) {
 
 export function CryptoCoach() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, sender: "bot", text: "Hello! How can I assist you today?" },
+    {
+      id: 1,
+      sender: "bot",
+      text: "Hello, je suis ton Coach crypto, comment puis-je t'aider ?",
+    },
   ]);
   const [newMessage, setNewMessage] = useState("");
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
+  const [isBotThinking, setIsBotThinking] = useState(false);
 
   useEffect(() => {
-      const fetchVideos = async () => {
-        const { data: user, error: userError } = await supabase.auth.getUser();
-  
-        if (userError || !user?.user) {
-          console.error("Error fetching user:", userError);
-          return;
-        }
-  
-        const userId = user.user.id;
-  
-        const { data, error } = await supabase
-          .from("videos")
-          .select("*")
-          .eq("user_id", userId);
-  
-        if (error) {
-          console.error("Error fetching simulations:", error);
-        } else {
-          setVideos(data || []);
-        }
-      };
-  
-      fetchVideos();
-    }, []);
+    const fetchVideos = async () => {
+      const { data: user, error: userError } = await supabase.auth.getUser();
 
-    const formatResponse = (response) => {
-      return response
-        .replace(/(?:\r\n|\r|\n)/g, "<br>")
-        .trim();
-    };
+      if (userError || !user?.user) {
+        console.error("Error fetching user:", userError);
+        return;
+      }
 
-    const handleSendMessage = async () => {
-      if (newMessage.trim()) {
-        const userMessage = { id: Date.now(), sender: "user", text: newMessage };
-        setMessages((prevMessages) => [...prevMessages, userMessage]);
-        setNewMessage("");
-  
-        try {
-          const botResponse = await getChatResponse(newMessage);
-          const formattedResponse = formatResponse(botResponse);
-  
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { id: Date.now(), sender: "bot", text: formattedResponse },
-          ]);
-        } catch (error) {
-          console.error("Error fetching bot response:", error);
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { id: Date.now(), sender: "bot", text: "Sorry, something went wrong!" },
-          ]);
-        }
+      const userId = user.user.id;
+
+      const { data, error } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error fetching simulations:", error);
+      } else {
+        setVideos(data || []);
       }
     };
+
+    fetchVideos();
+  }, []);
+
+  const formatResponse = (response) => {
+    return response.replace(/(?:\r\n|\r|\n)/g, "<br>").trim();
+  };
+
+  const handleSendMessage = async () => {
+    if (newMessage.trim()) {
+      const userMessage = { id: Date.now(), sender: "user", text: newMessage };
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setNewMessage("");
+      setIsBotThinking(true);
+
+      try {
+        const botResponse = await getChatResponse(newMessage);
+        const formattedResponse = formatResponse(botResponse);
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { id: Date.now(), sender: "bot", text: formattedResponse },
+        ]);
+      } catch (error) {
+        console.error("Error fetching bot response:", error);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            id: Date.now(),
+            sender: "bot",
+            text: "Sorry, something went wrong!",
+          },
+        ]);
+      } finally {
+        setIsBotThinking(false);
+      }
+    }
+  };
 
   const handleAddVideo = async (newVideo: VideoType) => {
     const { data: user, error: userError } = await supabase.auth.getUser();
@@ -223,7 +233,9 @@ export function CryptoCoach() {
       user_id: userId,
     };
 
-    const { data, error } = await supabase.from("videos").insert([newVideoData]);
+    const { data, error } = await supabase
+      .from("videos")
+      .insert([newVideoData]);
 
     if (error) {
       console.error("Error saving video:", error);
@@ -238,24 +250,28 @@ export function CryptoCoach() {
       .from("videos")
       .update(updatedVideo)
       .eq("id", updatedVideo.id);
-  
+
     if (error) {
       console.error("Error updating video:", error);
       return;
     }
-  
-    setVideos(videos.map((video) => (video.id === updatedVideo.id ? updatedVideo : video)));
+
+    setVideos(
+      videos.map((video) =>
+        video.id === updatedVideo.id ? updatedVideo : video
+      )
+    );
     setEditingVideo(null);
   };
-  
+
   const handleDeleteVideo = async (videoId: string) => {
     const { error } = await supabase.from("videos").delete().eq("id", videoId);
-  
+
     if (error) {
       console.error("Error deleting video:", error);
       return;
     }
-  
+
     setVideos(videos.filter((video) => video.id !== videoId));
   };
 
@@ -289,12 +305,22 @@ export function CryptoCoach() {
                   }`}
                 >
                   <p>{message.text}</p>
-                  {/* <p className="text-xs mt-1 opacity-70">
-                    {message.timestamp.toLocaleTimeString()}
-                  </p> */}
                 </div>
               </div>
             ))}
+            {isBotThinking && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                  <motion.div
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="text-gray-500"
+                  >
+                    ...
+                  </motion.div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t">
@@ -385,9 +411,7 @@ export function CryptoCoach() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {video?.date}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-2">{video?.date}</p>
                   </div>
                 ))}
             </div>
@@ -436,9 +460,7 @@ export function CryptoCoach() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {video?.date}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-2">{video?.date}</p>
                   </div>
                 ))}
             </div>

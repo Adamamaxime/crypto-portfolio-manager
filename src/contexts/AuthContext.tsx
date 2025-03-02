@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // navigate('/login');
       }
     }
-  }, [auth.user, auth.loading, navigate]);
+  }, [auth.user, auth.loading]);
 
   return (
     <AuthContext.Provider value={auth}>
