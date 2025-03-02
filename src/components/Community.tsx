@@ -103,7 +103,7 @@ const Community = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="m-4 bg-white rounded-xl shadow-lg overflow-hidden h-auto flex flex-col"
+          className="m-4 bg-white rounded-xl shadow-lg overflow-hidden h-auto flex flex-col h-[96vh]"
         >
           <div className="p-4 bg-indigo-600 text-white flex items-center">
             <MessageSquare className="w-5 h-5 mr-2" />
